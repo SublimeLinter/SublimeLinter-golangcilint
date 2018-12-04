@@ -21,3 +21,14 @@ class Golangcilint(Linter):
             return self._live_lint(cmd, code)
         else:
             return self._in_place_lint(cmd)
+
+    def _live_lint(self, cmd, code):
+        dir = os.path.dirname(self.filename)
+        files = [file for file in os.listdir(dir) if file.endswith(".go")]
+        if len(files) > 100:
+            print("golangcilint: too many files ({}), live linting skipped".format(len(files)))
+            return ""
+        return self.tmpdir(cmd, dir, files, self.filename, code)
+
+    def _in_place_lint(self, cmd):
+        return self.execute(cmd)
