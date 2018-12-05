@@ -22,6 +22,10 @@ class Golangcilint(Linter):
         else:
             return self._in_place_lint(cmd)
 
+    def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
+        """prevents SublimeLinter to append filename at the end of cmd"""
+        return cmd
+
     def _live_lint(self, cmd, code):
         dir = os.path.dirname(self.filename)
         files = [file for file in os.listdir(dir) if file.endswith(".go")]
