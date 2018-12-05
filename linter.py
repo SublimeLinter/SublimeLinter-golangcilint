@@ -36,3 +36,27 @@ class Golangcilint(Linter):
 
     def _in_place_lint(self, cmd):
         return self.execute(cmd)
+
+    def tmpdir(self, cmd, dir, files, filename, code):
+        """Run an external executable using a temp dir filled with files and return its output."""
+        try:
+            with tempfile.TemporaryDirectory(dir=dir, prefix=".golangcilint-") as tmpdir:
+                for filepath in files:
+                    target = os.path.join(tmpdir, filepath)
+                    filepath = os.path.join(dir, filepath)
+                    if os.path.basename(target) != os.path.basename(filename):
+                        os.link(filepath, target)
+                        continue
+                    # source file hasn't been saved since change
+                    # so update it from our live buffer for now
+                    with open(target, 'wb') as w:
+                        if isinstance(code, str):
+                            code = code.encode('utf8')
+                        w.write(code)
+                return self.execute(cmd + [tmpdir])
+        except FileNotFoundError:
+            print("golangcilint file not found error on `{}`".format(dir))
+            return ""
+        except PermissionError:
+            print("golangcilint permission error on `{}`".format(dir))
+            return ""
