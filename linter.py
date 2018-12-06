@@ -60,3 +60,27 @@ class Golangcilint(Linter):
         except PermissionError:
             print("golangcilint permission error on `{}`".format(dir))
             return ""
+
+    def execute(self, cmd):
+        lines = []
+        output = self.communicate(cmd)
+        report = json.loads(output)
+        currnt = os.path.basename(self.filename)
+
+        """format issues into formal pattern"""
+        for issue in report["Issues"]:
+            name = issue["Pos"]["Filename"]
+            mark = name.rfind("/")
+            mark = 0 if mark == -1 else mark+1
+            issue["Pos"]["Shortname"] = name[mark:]
+            lines.append(
+                "{}:{}:{}:{}:{}".format(
+                    issue["Pos"]["Shortname"],
+                    issue["Pos"]["Line"],
+                    issue["Pos"]["Column"],
+                    issue["Level"],
+                    issue["Text"]
+                )
+            )
+
+        return "\n".join(lines)
