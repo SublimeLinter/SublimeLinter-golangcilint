@@ -73,6 +73,9 @@ class Golangcilint(Linter):
             mark = name.rfind("/")
             mark = 0 if mark == -1 else mark+1
             issue["Pos"]["Shortname"] = name[mark:]
+            """skip issues from unrelated files"""
+            if issue["Pos"]["Shortname"] != currnt:
+                continue
             lines.append(
                 "{}:{}:{}:{}:{}".format(
                     issue["Pos"]["Shortname"],
