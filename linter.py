@@ -61,6 +61,9 @@ class Golangcilint(Linter):
             print("golangcilint permission error on `{}`".format(dir))
             return ""
 
+    def issue_level(self, issue):
+        return "error" if issue["FromLinter"] == "typecheck" else "warning"
+
     def execute(self, cmd):
         lines = []
         output = self.communicate(cmd)
@@ -73,6 +76,8 @@ class Golangcilint(Linter):
             mark = name.rfind("/")
             mark = 0 if mark == -1 else mark+1
             issue["Pos"]["Shortname"] = name[mark:]
+            """decide if it is a warning or error"""
+            issue["Level"] = self.issue_level(issue)
             """skip issues from unrelated files"""
             if issue["Pos"]["Shortname"] != currnt:
                 continue
