@@ -70,6 +70,22 @@ class Golangcilint(Linter):
         report = json.loads(output)
         currnt = os.path.basename(self.filename)
 
+        """merge possible stderr with issues"""
+        if "Error" in report["Report"]:
+            for line in report["Report"]["Error"].splitlines():
+                if line.count(":") < 3:
+                    continue
+                parts = line.split(":")
+                report["Issues"].append({
+                    "FromLinter": "typecheck",
+                    "Text": parts[3].strip(),
+                    "Pos": {
+                        "Filename": parts[0],
+                        "Line": parts[1],
+                        "Column": parts[2],
+                    }
+                })
+
         """format issues into formal pattern"""
         for issue in report["Issues"]:
             name = issue["Pos"]["Filename"]
