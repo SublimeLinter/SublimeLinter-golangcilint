@@ -1,6 +1,7 @@
 The MIT License (MIT)
 
-Copyright (c) 2019 CIXTOR
+Copyright (c) 2018 Alec Thomas <@alecthomas>
+Copyright (c) 2019 Yorman Arias <@cixtor>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
