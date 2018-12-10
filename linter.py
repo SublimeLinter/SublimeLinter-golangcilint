@@ -102,6 +102,20 @@ class Golangcilint(Linter):
             }
         }
 
+    def formalize(self, issues):
+        lines = []
+        for issue in issues:
+            lines.append(
+                "{}:{}:{}:{}:{}".format(
+                    issue["Pos"]["Shortname"],
+                    issue["Pos"]["Line"],
+                    issue["Pos"]["Column"],
+                    issue["Level"],
+                    issue["Text"]
+                )
+            )
+        return "\n".join(lines)
+
     def execute(self, cmd):
         lines = []
         output = self.communicate(cmd)
