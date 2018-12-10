@@ -64,6 +64,44 @@ class Golangcilint(Linter):
     def issue_level(self, issue):
         return "error" if issue["FromLinter"] == "typecheck" else "warning"
 
+    def canonical_error(self, issue):
+        mark = issue["Text"].rfind("/")
+        package = issue["Text"][mark+1:-1]
+        # Go 1.4 introduces an annotation for package clauses in Go source that
+        # identify a canonical import path for the package. If an import is
+        # attempted using a path that is not canonical, the go command will
+        # refuse to compile the importing package.
+        #
+        # When the linter runs, it creates a temporary directory, for example,
+        # “.golangcilint-foobar”, then creates a symbolic link for all relevant
+        # files, and writes the content of the current buffer in the correct
+        # file. Unfortunately, canonical imports break this flow because the
+        # temporary directory differs from the expected location.
+        #
+        # The only way to deal with this for now is to detect the error, which
+        # may as well be a false positive, and then ignore all the warnings
+        # about missing packages in the current file. Hopefully, the user has
+        # “goimports” which will automatically resolve the dependencies for
+        # them. Also, if the false positives are not, the programmer will know
+        # about the missing packages during the compilation phase, so it’s not
+        # a bad idea to ignore these warnings for now.
+        #
+        # See: https://golang.org/doc/go1.4#canonicalimports
+        return {
+            "FromLinter": "typecheck",
+            "Text": "cannot lint package “{}” due to canonical import path".format(package),
+            "Replacement": issue["Replacement"],
+            "SourceLines": issue["SourceLines"],
+            "Level": "error",
+            "Pos": {
+                "Filename": self.filename,
+                "Shortname": self.shortname,
+                "Offset": 0,
+                "Column": 0,
+                "Line": 1
+            }
+        }
+
     def execute(self, cmd):
         lines = []
         output = self.communicate(cmd)
