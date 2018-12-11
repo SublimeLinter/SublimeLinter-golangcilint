@@ -64,6 +64,7 @@ class Golangcilint(Linter):
             return ""
 
     def issue_level(self, issue):
+        """consider /dev/stderr as errors and /dev/stdout as warnings"""
         return "error" if issue["FromLinter"] == "typecheck" else "warning"
 
     def canonical_error(self, issue):
@@ -119,7 +120,8 @@ class Golangcilint(Linter):
         return "\n".join(lines)
 
     def execute(self, cmd):
-        lines = []
+        issues = []
+        ignore = False
         output = self.communicate(cmd)
         report = json.loads(output)
 
@@ -145,19 +147,23 @@ class Golangcilint(Linter):
             mark = name.rfind("/")
             mark = 0 if mark == -1 else mark+1
             issue["Pos"]["Shortname"] = name[mark:]
-            """decide if it is a warning or error"""
             issue["Level"] = self.issue_level(issue)
-            """skip issues from unrelated files"""
-            if issue["Pos"]["Shortname"] != self.shortname:
-                continue
-            lines.append(
-                "{}:{}:{}:{}:{}".format(
-                    issue["Pos"]["Shortname"],
-                    issue["Pos"]["Line"],
-                    issue["Pos"]["Column"],
-                    issue["Level"],
-                    issue["Text"]
-                )
-            )
 
-        return "\n".join(lines)
+            """detect broken canonical imports"""
+            if ("code in directory" in issue["Text"]
+                and "expects import" in issue["Text"]):
+                issues.append(self.canonical_error(issue))
+                ignore = True
+                continue
+
+            """ignore false positive warnings"""
+            if (ignore
+                and "could not import" in issue["Text"]
+                and "missing package:" in issue["Text"]):
+                continue
+
+            """report issues relevant to this file"""
+            if issue["Pos"]["Shortname"] == self.shortname:
+                issues.append(issue)
+
+        return self.formalize(issues)
