@@ -10,6 +10,7 @@ class Golangcilint(Linter):
     regex = r"(?:[^:]+):(?P<line>\d+):(?P<col>\d+):(?:(?P<warning>warning)|(?P<error>error)):(?P<message>.*)"
     defaults = {"selector": "source.go"}
     error_stream = util.STREAM_STDOUT
+    shortname = "unknown.go"
     multiline = False
 
     def run(self, cmd, code):
@@ -17,6 +18,7 @@ class Golangcilint(Linter):
         if not dir:
             print("golangcilint: skipped linting of unsaved file")
             return
+        self.shortname = os.path.basename(self.filename)
         if settings.get("lint_mode") == "background":
             return self._live_lint(cmd, code)
         else:
@@ -120,7 +122,6 @@ class Golangcilint(Linter):
         lines = []
         output = self.communicate(cmd)
         report = json.loads(output)
-        currnt = os.path.basename(self.filename)
 
         """merge possible stderr with issues"""
         if "Error" in report["Report"]:
@@ -147,7 +148,7 @@ class Golangcilint(Linter):
             """decide if it is a warning or error"""
             issue["Level"] = self.issue_level(issue)
             """skip issues from unrelated files"""
-            if issue["Pos"]["Shortname"] != currnt:
+            if issue["Pos"]["Shortname"] != self.shortname:
                 continue
             lines.append(
                 "{}:{}:{}:{}:{}".format(
