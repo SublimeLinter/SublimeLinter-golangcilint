@@ -7,12 +7,14 @@ This linter plugin for [SublimeLinter](https://github.com/SublimeLinter) provide
 ## Installation
 
 - Install SublimeLinter 3 from [here](https://packagecontrol.io/packages/SublimeLinter)
-- Install SublimeLinter-golangcilint from [here](https://packagecontrol.io/packages/SublimeLinter-contrib-golang-cilint)
+- Install SublimeLinter-golangcilint from [here](https://packagecontrol.io/packages/SublimeLinter-golangcilint)
 - Install the `golangci-lint` helper from [here](https://github.com/golangci/golangci-lint#install)
+
+![screenshot](screenshot.png)
 
 ## Configuration
 
-In order for `golangci-lint` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [Finding a linter executable](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation. Once you have installed `golangci-lint`, you can proceed to install the SublimeLinter-contrib-golangci-lint plugin if it is not yet installed.
+In order for `golangci-lint` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [Finding a linter executable](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation. Once you have installed `golangci-lint`, you can proceed to install the plugin if it is not yet installed.
 
 **Note:** The linter creates a temporary directory to allow SublimeLinter to scan changes in the code that are still in the buffer _(aka. not saved yet)_. If the SublimeText sidebar is visible, you will notice _—for a split of a second—_ that a folder named `.golangcilint-*` appears and disappears. Make sure to add this folder to your `.gitignore` file, and also the “folder_exclude_patterns” in SublimeText’s preferences:
 
