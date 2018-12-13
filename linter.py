@@ -1,73 +1,36 @@
 import os
 import json
-import tempfile
-from SublimeLinter.lint import Linter, util
-from SublimeLinter.lint.persist import settings
+import logging
+from SublimeLinter.lint import NodeLinter
+from SublimeLinter.lint.linter import LintMatch
+
+logger = logging.getLogger('SublimeLinter.plugin.golangcilint')
 
 
-class Golangcilint(Linter):
-    cmd = "golangci-lint run --fast --out-format json --enable typecheck"
-    regex = r"(?:[^:]+):(?P<line>\d+):(?P<col>\d+):(?:(?P<warning>warning)|(?P<error>error)):(?P<message>.*)"
+class Golangcilint(NodeLinter):
+    cmd = "golangci-lint run --fast --out-format json"
     defaults = {"selector": "source.go"}
-    error_stream = util.STREAM_STDOUT
-    shortname = "unknown.go"
-    multiline = False
+    axis_base = (1, 1)
 
-    def run(self, cmd, code):
-        dir = os.path.dirname(self.filename)
-        if not dir:
-            print("golangcilint: skipped linting of unsaved file")
-            return
-        self.shortname = os.path.basename(self.filename)
-        if settings.get("lint_mode") == "background":
-            return self._live_lint(cmd, code)
-        else:
-            return self._in_place_lint(cmd)
-
-    def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
-        """prevents SublimeLinter to append filename at the end of cmd"""
-        return cmd
-
-    def _live_lint(self, cmd, code):
-        dir = os.path.dirname(self.filename)
-        files = [file for file in os.listdir(dir) if file.endswith(".go")]
-        if len(files) > 100:
-            print("golangcilint: too many files ({}), live linting skipped".format(len(files)))
-            return ""
-        return self.tmpdir(cmd, dir, files, self.filename, code)
-
-    def _in_place_lint(self, cmd):
-        return self.execute(cmd)
-
-    def tmpdir(self, cmd, dir, files, filename, code):
-        """Run an external executable using a temp dir filled with files and return its output."""
-        try:
-            with tempfile.TemporaryDirectory(dir=dir, prefix=".golangcilint-") as tmpdir:
-                for filepath in files:
-                    target = os.path.join(tmpdir, filepath)
-                    filepath = os.path.join(dir, filepath)
-                    if os.path.basename(target) != os.path.basename(filename):
-                        os.link(filepath, target)
-                        continue
-                    # source file hasn't been saved since change
-                    # so update it from our live buffer for now
-                    with open(target, 'wb') as w:
-                        if isinstance(code, str):
-                            code = code.encode('utf8')
-                        w.write(code)
-                return self.execute(cmd + [tmpdir])
-        except FileNotFoundError:
-            print("golangcilint file not found error on `{}`".format(dir))
-            return ""
-        except PermissionError:
-            print("golangcilint permission error on `{}`".format(dir))
-            return ""
-
-    def issue_level(self, issue):
+    def severity(self, issue):
         """consider /dev/stderr as errors and /dev/stdout as warnings"""
         return "error" if issue["FromLinter"] == "typecheck" else "warning"
 
-    def canonical_error(self, issue):
+    def shortname(self, issue):
+        """find and return short filename"""
+        return os.path.basename(issue["Pos"]["Filename"])
+
+    def lintissue(self, issue):
+        return LintMatch(
+            match=issue,
+            message=issue["Text"],
+            error_type=self.severity(issue),
+            line=issue["Pos"]["Line"] - self.axis_base[0],
+            col=issue["Pos"]["Column"] - self.axis_base[1],
+            code=issue["FromLinter"]
+        )
+
+    def canonical(self, issue):
         mark = issue["Text"].rfind("/")
         package = issue["Text"][mark+1:-1]
         # Go 1.4 introduces an annotation for package clauses in Go source that
@@ -98,40 +61,31 @@ class Golangcilint(Linter):
             "Level": "error",
             "Pos": {
                 "Filename": self.filename,
-                "Shortname": self.shortname,
                 "Offset": 0,
                 "Column": 0,
                 "Line": 1
             }
         }
 
-    def formalize(self, issues):
-        lines = []
-        for issue in issues:
-            lines.append(
-                "{}:{}:{}:{}:{}".format(
-                    issue["Pos"]["Shortname"],
-                    issue["Pos"]["Line"],
-                    issue["Pos"]["Column"],
-                    issue["Level"],
-                    issue["Text"]
-                )
-            )
-        return "\n".join(lines)
+    def find_errors(self, output):
+        current = os.path.basename(self.filename)
+        exclude = False
 
-    def execute(self, cmd):
-        issues = []
-        ignore = False
-        output = self.communicate(cmd)
-        report = json.loads(output)
+        try:
+            data = json.loads(output)
+        except Exception as e:
+            logger.warning(e)
+            self.notify_failure()
 
         """merge possible stderr with issues"""
-        if "Error" in report["Report"]:
-            for line in report["Report"]["Error"].splitlines():
+        if (data
+            and "Report" in data
+            and "Error" in data["Report"]):
+            for line in data["Report"]["Error"].splitlines():
                 if line.count(":") < 3:
                     continue
                 parts = line.split(":")
-                report["Issues"].append({
+                data["Issues"].append({
                     "FromLinter": "typecheck",
                     "Text": parts[3].strip(),
                     "Pos": {
@@ -141,29 +95,25 @@ class Golangcilint(Linter):
                     }
                 })
 
-        """format issues into formal pattern"""
-        for issue in report["Issues"]:
-            name = issue["Pos"]["Filename"]
-            mark = name.rfind("/")
-            mark = 0 if mark == -1 else mark+1
-            issue["Pos"]["Shortname"] = name[mark:]
-            issue["Level"] = self.issue_level(issue)
+        """find relevant issues and yield a LintMatch"""
+        if data and "Issues" in data:
+            for issue in data["Issues"]:
+                """detect broken canonical imports"""
+                if ("code in directory" in issue["Text"]
+                    and "expects import" in issue["Text"]):
+                    issue = self.canonical(issue)
+                    yield self.lintissue(issue)
+                    exclude = True
+                    continue
 
-            """detect broken canonical imports"""
-            if ("code in directory" in issue["Text"]
-                and "expects import" in issue["Text"]):
-                issues.append(self.canonical_error(issue))
-                ignore = True
-                continue
+                """ignore false positive warnings"""
+                if (exclude
+                    and "could not import" in issue["Text"]
+                    and "missing package:" in issue["Text"]):
+                    continue
 
-            """ignore false positive warnings"""
-            if (ignore
-                and "could not import" in issue["Text"]
-                and "missing package:" in issue["Text"]):
-                continue
+                """issues found in the current file are relevant"""
+                if self.shortname(issue) != current:
+                    continue
 
-            """report issues relevant to this file"""
-            if issue["Pos"]["Shortname"] == self.shortname:
-                issues.append(issue)
-
-        return self.formalize(issues)
+                yield self.lintissue(issue)
