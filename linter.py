@@ -1,16 +1,41 @@
 import os
 import json
 import logging
+import tempfile
 from SublimeLinter.lint import NodeLinter
 from SublimeLinter.lint.linter import LintMatch
+from SublimeLinter.lint.persist import settings
 
 logger = logging.getLogger('SublimeLinter.plugin.golangcilint')
 
+# Due to performance issues in golangci-lint, the linter will not attempt to
+# lint a maximum of one-hundred (100) files considering a delay of 100ms and
+# lint_mode equal to “background”. If the user increases the delay, the tool
+# will have more time to scan more files and analyze them.
+MAX_FILES = 100
 
 class Golangcilint(NodeLinter):
     cmd = "golangci-lint run --fast --out-format json"
     defaults = {"selector": "source.go"}
-    axis_base = (1, 1)
+    line_col_base = (1, 1)
+
+    def run(self, cmd, code):
+        if not os.path.dirname(self.filename):
+            logger.warning("cannot lint unsaved Go (golang) files")
+            self.notify_failure()
+            return ""
+
+        # If the user has configured SublimeLinter to run in background mode,
+        # the linter will be unable to show warnings or errors in the current
+        # buffer until the user saves the changes. To solve this problem, the
+        # plugin will create a temporary directory, then will create symbolic
+        # links of all the files in the current folder, then will write the
+        # buffer into a file, and finally will execute the linter inside this
+        # directory.
+        if settings.get("lint_mode") == "background":
+            return self._background_lint(cmd, code)
+        else:
+            return self._foreground_lint(cmd)
 
     """match regex against the command output"""
     def find_errors(self, output):
@@ -64,6 +89,49 @@ class Golangcilint(NodeLinter):
 
                 yield self._lintissue(issue)
 
+    def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
+        """prevents SublimeLinter from appending an unnecessary file"""
+        return cmd
+
+    def _foreground_lint(self, cmd):
+        return self.communicate(cmd)
+
+    def _background_lint(self, cmd, code):
+        folder = os.path.dirname(self.filename)
+        things = [f for f in os.listdir(folder) if f.endswith(".go")]
+        nfiles = len(things)
+
+        if nfiles > MAX_FILES:
+            logger.warning("too many Go (golang) files ({})".format(nfiles))
+            self.notify_failure()
+            return ""
+
+        try:
+            """create temporary folder to store the code from the buffer"""
+            with tempfile.TemporaryDirectory(dir=folder, prefix=".golangcilint-") as tmpdir:
+                for filepath in things:
+                    target = os.path.join(tmpdir, filepath)
+                    filepath = os.path.join(folder, filepath)
+                    """create symbolic links to non-modified files"""
+                    if os.path.basename(target) != os.path.basename(self.filename):
+                        os.link(filepath, target)
+                        continue
+                    """write the buffer into a file on disk"""
+                    with open(target, 'wb') as w:
+                        if isinstance(code, str):
+                            code = code.encode('utf8')
+                        w.write(code)
+                """point command to the temporary folder"""
+                return self.communicate(cmd + [tmpdir])
+        except FileNotFoundError:
+            logger.warning("cannot lint non-existent folder “{}”".format(folder))
+            self.notify_failure()
+            return ""
+        except PermissionError:
+            logger.warning("cannot lint private folder “{}”".format(folder))
+            self.notify_failure()
+            return ""
+
     def _shortname(self, issue):
         """find and return short filename"""
         return os.path.basename(issue["Pos"]["Filename"])
@@ -114,7 +182,7 @@ class Golangcilint(NodeLinter):
             match=issue,
             message=issue["Text"],
             error_type=self._severity(issue),
-            line=issue["Pos"]["Line"] - self.axis_base[0],
-            col=issue["Pos"]["Column"] - self.axis_base[1],
+            line=issue["Pos"]["Line"] - self.line_col_base[0],
+            col=issue["Pos"]["Column"] - self.line_col_base[1],
             code=issue["FromLinter"]
         )
