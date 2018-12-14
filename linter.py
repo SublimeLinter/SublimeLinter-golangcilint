@@ -12,25 +12,67 @@ class Golangcilint(NodeLinter):
     defaults = {"selector": "source.go"}
     axis_base = (1, 1)
 
-    def severity(self, issue):
-        """consider /dev/stderr as errors and /dev/stdout as warnings"""
-        return "error" if issue["FromLinter"] == "typecheck" else "warning"
+    """match regex against the command output"""
+    def find_errors(self, output):
+        current = os.path.basename(self.filename)
+        exclude = False
 
-    def shortname(self, issue):
+        try:
+            data = json.loads(output)
+        except Exception as e:
+            logger.warning(e)
+            self.notify_failure()
+
+        """merge possible stderr with issues"""
+        if (data
+            and "Report" in data
+            and "Error" in data["Report"]):
+            for line in data["Report"]["Error"].splitlines():
+                if line.count(":") < 3:
+                    continue
+                parts = line.split(":")
+                data["Issues"].append({
+                    "FromLinter": "typecheck",
+                    "Text": parts[3].strip(),
+                    "Pos": {
+                        "Filename": parts[0],
+                        "Line": parts[1],
+                        "Column": parts[2],
+                    }
+                })
+
+        """find relevant issues and yield a LintMatch"""
+        if data and "Issues" in data:
+            for issue in data["Issues"]:
+                """detect broken canonical imports"""
+                if ("code in directory" in issue["Text"]
+                    and "expects import" in issue["Text"]):
+                    issue = self._canonical(issue)
+                    yield self._lintissue(issue)
+                    exclude = True
+                    continue
+
+                """ignore false positive warnings"""
+                if (exclude
+                    and "could not import" in issue["Text"]
+                    and "missing package:" in issue["Text"]):
+                    continue
+
+                """issues found in the current file are relevant"""
+                if self._shortname(issue) != current:
+                    continue
+
+                yield self._lintissue(issue)
+
+    def _shortname(self, issue):
         """find and return short filename"""
         return os.path.basename(issue["Pos"]["Filename"])
 
-    def lintissue(self, issue):
-        return LintMatch(
-            match=issue,
-            message=issue["Text"],
-            error_type=self.severity(issue),
-            line=issue["Pos"]["Line"] - self.axis_base[0],
-            col=issue["Pos"]["Column"] - self.axis_base[1],
-            code=issue["FromLinter"]
-        )
+    def _severity(self, issue):
+        """consider /dev/stderr as errors and /dev/stdout as warnings"""
+        return "error" if issue["FromLinter"] == "typecheck" else "warning"
 
-    def canonical(self, issue):
+    def _canonical(self, issue):
         mark = issue["Text"].rfind("/")
         package = issue["Text"][mark+1:-1]
         # Go 1.4 introduces an annotation for package clauses in Go source that
@@ -67,53 +109,12 @@ class Golangcilint(NodeLinter):
             }
         }
 
-    def find_errors(self, output):
-        current = os.path.basename(self.filename)
-        exclude = False
-
-        try:
-            data = json.loads(output)
-        except Exception as e:
-            logger.warning(e)
-            self.notify_failure()
-
-        """merge possible stderr with issues"""
-        if (data
-            and "Report" in data
-            and "Error" in data["Report"]):
-            for line in data["Report"]["Error"].splitlines():
-                if line.count(":") < 3:
-                    continue
-                parts = line.split(":")
-                data["Issues"].append({
-                    "FromLinter": "typecheck",
-                    "Text": parts[3].strip(),
-                    "Pos": {
-                        "Filename": parts[0],
-                        "Line": parts[1],
-                        "Column": parts[2],
-                    }
-                })
-
-        """find relevant issues and yield a LintMatch"""
-        if data and "Issues" in data:
-            for issue in data["Issues"]:
-                """detect broken canonical imports"""
-                if ("code in directory" in issue["Text"]
-                    and "expects import" in issue["Text"]):
-                    issue = self.canonical(issue)
-                    yield self.lintissue(issue)
-                    exclude = True
-                    continue
-
-                """ignore false positive warnings"""
-                if (exclude
-                    and "could not import" in issue["Text"]
-                    and "missing package:" in issue["Text"]):
-                    continue
-
-                """issues found in the current file are relevant"""
-                if self.shortname(issue) != current:
-                    continue
-
-                yield self.lintissue(issue)
+    def _lintissue(self, issue):
+        return LintMatch(
+            match=issue,
+            message=issue["Text"],
+            error_type=self._severity(issue),
+            line=issue["Pos"]["Line"] - self.axis_base[0],
+            col=issue["Pos"]["Column"] - self.axis_base[1],
+            code=issue["FromLinter"]
+        )
