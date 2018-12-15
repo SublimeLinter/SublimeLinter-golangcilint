@@ -8,11 +8,6 @@ from SublimeLinter.lint.persist import settings
 
 logger = logging.getLogger('SublimeLinter.plugin.golangcilint')
 
-# Due to performance issues in golangci-lint, the linter will not attempt to
-# lint a maximum of one-hundred (100) files considering a delay of 100ms and
-# lint_mode equal to “background”. If the user increases the delay, the tool
-# will have more time to scan more files and analyze them.
-MAX_FILES = 100
 
 class Golangcilint(NodeLinter):
     cmd = "golangci-lint run --fast --out-format json"
@@ -99,9 +94,15 @@ class Golangcilint(NodeLinter):
     def _background_lint(self, cmd, code):
         folder = os.path.dirname(self.filename)
         things = [f for f in os.listdir(folder) if f.endswith(".go")]
+        maxsee = settings.get("delay") * 1000
         nfiles = len(things)
 
-        if nfiles > MAX_FILES:
+        if nfiles > maxsee:
+            # Due to performance issues in golangci-lint, the linter will not
+            # attempt to lint more than one-hundred (100) files considering a
+            # delay of 100ms and lint_mode equal to “background”. If the user
+            # increases the delay, the tool will have more time to scan more
+            # files and analyze them.
             logger.warning("too many Go (golang) files ({})".format(nfiles))
             self.notify_failure()
             return ""
