@@ -10,6 +10,35 @@ logger = logging.getLogger('SublimeLinter.plugin.golangcilint')
 
 
 class Golangcilint(NodeLinter):
+    # Here are the statistics of how fast the plugin reports the warnings and
+    # errors via golangci-lint when all the helpers are disabled and only the
+    # specified linter is enabled. In total, when all of them are enabled, it
+    # takes an average of 1.6111 secs in a project with seventy-four (74) Go
+    # files, 6043 lines (4620 code + 509 comments + 914 blanks).
+    #
+    # | Seconds | Linter      |
+    # |---------|-------------|
+    # | 0.7040s | goconst     |
+    # | 0.7085s | nakedret    |
+    # | 0.7172s | gocyclo     |
+    # | 0.7337s | prealloc    |
+    # | 0.7431s | scopelint   |
+    # | 0.7479s | ineffassign |
+    # | 0.7553s | golint      |
+    # | 0.7729s | misspell    |
+    # | 0.7733s | gofmt       |
+    # | 0.7854s | dupl        |
+    # | 1.2574s | varcheck    |
+    # | 1.2653s | errcheck    |
+    # | 1.3052s | gocritic    |
+    # | 1.3078s | typecheck   |
+    # | 1.3131s | structcheck |
+    # | 1.3140s | maligned    |
+    # | 1.3159s | unconvert   |
+    # | 1.3598s | depguard    |
+    # | 1.3678s | deadcode    |
+    # | 1.3942s | govet       |
+    # | 1.4565s | gosec       |
     cmd = "golangci-lint run --fast --out-format json"
     defaults = {"selector": "source.go"}
     line_col_base = (1, 1)
@@ -27,6 +56,17 @@ class Golangcilint(NodeLinter):
         # links of all the files in the current folder, then will write the
         # buffer into a file, and finally will execute the linter inside this
         # directory.
+        #
+        # Note: The idea to execute the Foreground linter “on_load” even if
+        # “lint_mode” is set to “background” cannot be taken in consideration
+        # because of the following scenario:
+        #
+        # - User makes changes to a file
+        # - The editor suddently closes
+        # - Buffer is saved for recovery
+        # - User opens the editor again
+        # - Editor loads the unsaved file
+        # - Linter runs in an unsaved file
         if settings.get("lint_mode") == "background":
             return self._background_lint(cmd, code)
         else:
