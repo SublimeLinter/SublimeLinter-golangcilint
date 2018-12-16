@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import tempfile
-from SublimeLinter.lint import NodeLinter
+from SublimeLinter.lint import NodeLinter, util
 from SublimeLinter.lint.linter import LintMatch
 from SublimeLinter.lint.persist import settings
 
@@ -41,6 +41,7 @@ class Golangcilint(NodeLinter):
     # | 1.4565s | gosec       |
     cmd = "golangci-lint run --fast --out-format json"
     defaults = {"selector": "source.go"}
+    error_stream = util.STREAM_STDOUT
     line_col_base = (1, 1)
 
     def run(self, cmd, code):
