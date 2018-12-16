@@ -105,6 +105,9 @@ class Golangcilint(NodeLinter):
         """find relevant issues and yield a LintMatch"""
         if data and "Issues" in data:
             for issue in data["Issues"]:
+                """fix 3rd-party linter bugs"""
+                issue = self._formalize(issue)
+
                 """detect broken canonical imports"""
                 if ("code in directory" in issue["Text"]
                     and "expects import" in issue["Text"]):
@@ -173,6 +176,14 @@ class Golangcilint(NodeLinter):
             logger.warning("cannot lint private folder “{}”".format(folder))
             self.notify_failure()
             return ""
+
+    def _formalize(self, issue):
+        """some linters return numbers as string"""
+        if not isinstance(issue["Pos"]["Line"], int):
+            issue["Pos"]["Line"] = int(issue["Pos"]["Line"])
+        if not isinstance(issue["Pos"]["Column"], int):
+            issue["Pos"]["Column"] = int(issue["Pos"]["Column"])
+        return issue
 
     def _shortname(self, issue):
         """find and return short filename"""
