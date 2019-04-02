@@ -41,7 +41,7 @@ class Golangcilint(NodeLinter):
     # | 1.4565s | gosec       |
     cmd = "golangci-lint run --fast --out-format json"
     defaults = {"selector": "source.go"}
-    error_stream = util.STREAM_STDOUT
+    error_stream = util.STREAM_BOTH
     line_col_base = (1, 1)
 
     def run(self, cmd, code):
@@ -127,6 +127,10 @@ class Golangcilint(NodeLinter):
                     continue
 
                 yield self._lintissue(issue)
+
+    def on_stderr(self, output):
+        logger.warning('{} output:\n{}'.format(self.name, output))
+        self.notify_failure()
 
     def finalize_cmd(self, cmd, context, at_value='', auto_append=False):
         """prevents SublimeLinter from appending an unnecessary file"""
