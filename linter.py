@@ -91,16 +91,30 @@ class Golangcilint(NodeLinter):
             for line in data["Report"]["Error"].splitlines():
                 if line.count(":") < 3:
                     continue
-                parts = line.split(":")
-                data["Issues"].append({
-                    "FromLinter": "typecheck",
-                    "Text": parts[3].strip(),
-                    "Pos": {
-                        "Filename": parts[0],
-                        "Line": parts[1],
-                        "Column": parts[2],
-                    }
-                })
+                if line.startswith("typechecking error: "):
+                    line = line[20:]
+                if line[1:3] == ":\\": # windows path in filename
+                    parts = line.split(":", 4)
+                    data["Issues"].append({
+                        "FromLinter": "typecheck",
+                        "Text": parts[4].strip(),
+                        "Pos": {
+                            "Filename": ':'.join(parts[0:2]),
+                            "Line": parts[2],
+                            "Column": parts[3],
+                        }
+                    })
+                else:
+                    parts = line.split(":", 3)
+                    data["Issues"].append({
+                        "FromLinter": "typecheck",
+                        "Text": parts[3].strip(),
+                        "Pos": {
+                            "Filename": parts[0],
+                            "Line": parts[1],
+                            "Column": parts[2],
+                        }
+                    })
 
         """find relevant issues and yield a LintMatch"""
         if data and "Issues" in data:
