@@ -7,7 +7,7 @@ class GolangCILint(Linter):
     # Issues reported by the 'typecheck' linter are treated as errors,
     # because they indicate code that won't compile. All other linter issues
     # are treated as warnings.
-    regex = r'^(?P<filename>.[^:]+):(?P<line>\d+):((?P<col>\d+):)? ' + \
+    regex = r'^(?P<filename>(\w+:\\\\)?.[^:]+):(?P<line>\d+):((?P<col>\d+):)? ' + \
         r'(?P<message>.+\(((?P<error>typecheck)|\w+)\))$'
     default_type = WARNING
     defaults = {
