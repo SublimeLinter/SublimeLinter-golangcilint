@@ -18,25 +18,6 @@ In order for `golangci-lint` to be executed by SublimeLinter, you must ensure th
 
 Due to performance issues in golangci-lint, the linter will not attempt to lint more than one-hundred (100) files considering a delay of 100ms and `lint_mode` equal to “background”. If the user increases the delay, the tool will have more time to scan more files and analyze them. If your project contains more than 300 files, you’ll have to set a delay of 0.3s or more in SublimeLinter settings.
 
-**Note:** The linter creates a temporary directory to allow SublimeLinter to scan changes in the code that are still in the buffer _(aka. not saved yet)_. If the SublimeText sidebar is visible, you will notice _—for a split of a second—_ that a folder named `.golangcilint-*` appears and disappears. Make sure to add this folder to your `.gitignore` file, and also the “folder_exclude_patterns” in SublimeText’s preferences:
-
-```
-{
-    "folder_exclude_patterns":
-    [
-        ".svn",
-        ".git",
-        ".hg",
-        "CVS",
-        "cache",
-        "uploads",
-        ".golangci-*",
-        ".golangcilint-*",
-        ".gometalinter-*"
-    ]
-}
-```
-
 ## Plugin installation
 
 Please use [Package Control](https://packagecontrol.io/) to install the linter plugin. This will ensure that the plugin will be updated when new versions are available. If you want to install from source so you can modify the source code, you probably know what you are doing so we won’t cover that here.
