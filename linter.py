@@ -9,7 +9,6 @@ class GolangCILint(Linter):
     # are treated as warnings.
     regex = r'^(?P<filename>(\w+:\\\\)?.[^:]+):(?P<line>\d+)(:(?P<col>\d+))?\s+' + \
         r'(?P<code>(?P<error>typecheck)|\w+)\s+(?P<message>.+)$'
-    tempfile_suffix = '-'
     default_type = WARNING
     defaults = {
         'selector': 'source.go'
