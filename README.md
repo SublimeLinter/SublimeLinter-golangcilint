@@ -16,7 +16,7 @@ This linter plugin for [SublimeLinter](https://github.com/SublimeLinter) provide
 
 In order for `golangci-lint` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [Finding a linter executable](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation. Once you have installed `golangci-lint`, you can proceed to install the plugin if it is not yet installed.
 
-Due to performance issues in golangci-lint, the linter will not attempt to lint more than one-hundred (100) files considering a delay of 100ms and `lint_mode` equal to “background”. If the user increases the delay, the tool will have more time to scan more files and analyze them. If your project contains more than 300 files, you’ll have to set a delay of 0.3s or more in SublimeLinter settings.
+Due to the way that golangci-lint works, the linter will only run when saving a file, even if `lint_mode` is set to “background”.
 
 ## Plugin installation
 
