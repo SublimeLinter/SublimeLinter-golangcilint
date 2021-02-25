@@ -2,4 +2,4 @@ SublimeLinter-golangcilint
 -------------------------------
 This linter plugin for SublimeLinter provides an interface to golangci-lint.
 
-More info: https://github.com/cixtor/SublimeLinter-golangcilint
+More info: https://github.com/SublimeLinter/SublimeLinter-golangcilint
