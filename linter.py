@@ -2,7 +2,7 @@ from SublimeLinter.lint import Linter, WARNING
 
 
 class GolangCILint(Linter):
-    cmd = 'golangci-lint run --fast --out-format tab ${file_path}'
+    cmd = 'golangci-lint run --fast --out-format tab ${args} ${file_on_disk}'
     tempfile_suffix = '-'
     # Column reporting is optional and not provided by all linters.
     # Issues reported by the 'typecheck' linter are treated as errors,
