@@ -2,7 +2,10 @@ from SublimeLinter.lint import Linter, WARNING
 
 
 class GolangCILint(Linter):
-    cmd = 'golangci-lint run ${args} --out-format tab ${file_path}'
+    def cmd(self):
+        if self.settings.get("v1", False):
+            return 'golangci-lint run ${args} --out-format tab ${file_path}'
+        return 'golangci-lint run ${args} --output.tab.path stdout ${file_path}'
     tempfile_suffix = '-'
     # Column reporting is optional and not provided by all linters.
     # Issues reported by the 'typecheck' linter are treated as errors,
@@ -13,5 +16,4 @@ class GolangCILint(Linter):
     default_type = WARNING
     defaults = {
         'selector': 'source.go',
-        'args': '--fast'
     }
