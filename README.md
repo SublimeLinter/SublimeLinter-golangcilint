@@ -6,17 +6,26 @@ This linter plugin for [SublimeLinter](https://github.com/SublimeLinter) provide
 
 ## Installation
 
-- Install SublimeLinter 3 from [here](https://packagecontrol.io/packages/SublimeLinter)
+- Install SublimeLinter from [here](https://packagecontrol.io/packages/SublimeLinter)
 - Install SublimeLinter-golangcilint from [here](https://packagecontrol.io/packages/SublimeLinter-golangcilint)
-- Install the `golangci-lint` helper from [here](https://github.com/golangci/golangci-lint#install)
+- Install the `golangci-lint` helper from [here](https://golangci-lint.run/welcome/install/#local-installation)
 
 ![screenshot](screenshot.png)
 
 ## Configuration
 
-In order for `golangci-lint` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [Finding a linter executable](http://sublimelinter.readthedocs.org/en/latest/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation. Once you have installed `golangci-lint`, you can proceed to install the plugin if it is not yet installed.
+For `golangci-lint` to be executed by SublimeLinter, you must ensure that its path is available to SublimeLinter. Before going any further, please read and follow the steps in [Finding a linter executable](https://sublimelinter.readthedocs.io/en/stable/troubleshooting.html#finding-a-linter-executable) through “Validating your PATH” in the documentation. Once you have installed `golangci-lint`, you can proceed to install the plugin if it is not yet installed.
 
-Due to the way that golangci-lint works, the linter will only run when saving a file, even if `lint_mode` is set to “background”.
+By default, the plugin expects `golangci-lint` version 2. To configure the plugin for `golangci-lint` version 1, set
+the `v1` setting to `true`:
+
+```json
+  "golangcilint": {
+    "v1": true
+  }
+```
+
+Due to the way that `golangci-lint` works, the linter will only run when saving a file, even if `lint_mode` is set to “background”.
 
 ## Plugin installation
 
