@@ -2,7 +2,7 @@
 
 This linter plugin for [SublimeLinter](https://github.com/SublimeLinter) provides an interface to [golangci-lint](https://github.com/golangci/golangci-lint), a linter for Go (golang).
 
-**Note:** The project was originally written by @alecthomas as an alternative to [SublimeLinter-gometalinter](https://github.com/alecthomas/SublimeLinter-contrib-gometalinter), a linter plugin for [gometalinter](https://github.com/alecthomas/gometalinter), both developed by the same person, and [deprecated on Apr 7, 2019](https://github.com/alecthomas/gometalinter/issues/590). The maintenance of the project was passed on to me on [Mar 5, 2019](https://github.com/SublimeLinter/package_control_channel/pull/83#issuecomment-469871377) after I suggested [some improvements](https://github.com/alecthomas/SublimeLinter-contrib-golang-cilint/pull/4) to deal with some false positives in golangci-lint.
+**Note:** The project was originally written by @alecthomas as an alternative to [SublimeLinter-gometalinter](https://github.com/alecthomas/SublimeLinter-contrib-gometalinter), a linter plugin for [gometalinter](https://github.com/alecthomas/gometalinter), both developed by the same person, and [deprecated on Apr 7, 2019](https://github.com/alecthomas/gometalinter/issues/590). The maintenance of the project was passed on to @cixtor on [Mar 5, 2019](https://github.com/SublimeLinter/package_control_channel/pull/83#issuecomment-469871377) after suggesting [some improvements](https://github.com/alecthomas/SublimeLinter-contrib-golang-cilint/pull/4) to deal with some false positives in golangci-lint and then immediately found its home in the SublimeLinter org.
 
 ## Installation
 
