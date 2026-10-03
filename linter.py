@@ -2,6 +2,7 @@ from SublimeLinter.lint import Linter, WARNING
 
 
 class GolangCILint(Linter):
+    column_unit = 'utf8'
     tempfile_suffix = '-'
     regex = (
         r'^(?P<filename>(?:\w:)?[^:]+):'
